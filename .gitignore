@@ -1,0 +1,9 @@
+/target
+*.lock
+
+# Program output
+*.admin
+
+# Docker data
+/psql
+/redis
