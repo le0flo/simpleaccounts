@@ -1,0 +1,23 @@
+services:
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+
+    networks:
+      - simple-accounts-net
+
+  psql:
+    image: postgres:alpine
+    restart: unless-stopped
+    
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: swag
+      POSTGRES_DB: test
+    
+    networks:
+      - simple-accounts-net
+
+networks:
+  simple-accounts-net:
+    driver: bridge

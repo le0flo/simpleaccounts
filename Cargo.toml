@@ -1,0 +1,17 @@
+[package]
+name = "simpleaccounts"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "*" }
+serde_json = { version = "*" }
+actix-web = { version = "4.9" }
+
+rand = { version = "*" }
+uuid = { version = "*", features = ["v4"] }
+hashcash = { version = "*" }
+
+sqlx = { version = "*", features = ["postgres", "runtime-tokio"] }
+r2d2 = { version = "*" }
+redis = { version = "*", features = ["r2d2"] }
