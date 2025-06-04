@@ -16,7 +16,7 @@ pub struct AdminConfiguration {
 impl Configuration {
     fn new() -> Configuration {
         return Configuration {
-            ip: String::from("127.0.0.1"),
+            ip: String::from("0.0.0.0"),
             port: 8080,
             admin: AdminConfiguration::new(),
         };

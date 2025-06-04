@@ -1,7 +1,18 @@
 services:
-  redis:
-    image: redis:alpine
+  simpleaccounts:
+    build: .
     restart: unless-stopped
+
+    depends_on:
+      - psql
+      - redis
+
+    environment:
+      PSQL_URI: postgres://${PSQL_USER}:${PSQL_PASSWORD}@psql/simpleaccounts
+      REDIS_URI: redis://redis/
+
+    ports:
+      - 8080:8080
 
     networks:
       - simple-accounts-net
@@ -9,12 +20,25 @@ services:
   psql:
     image: postgres:alpine
     restart: unless-stopped
-    
+
     environment:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: swag
-      POSTGRES_DB: test
-    
+      POSTGRES_USER: ${PSQL_USER}
+      POSTGRES_PASSWORD: ${PSQL_PASSWORD}
+      POSTGRES_DB: simpleaccounts
+
+    volumes:
+      - ./psql:/var/lib/postgresql/data
+
+    networks:
+      - simple-accounts-net
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+
+    volumes:
+      - ./redis:/data
+
     networks:
       - simple-accounts-net
 

@@ -1,6 +1,8 @@
-FROM rust:bookworm as builder
+FROM rust:bookworm AS builder
 WORKDIR /usr/src/simpleaccounts
-COPY . .
+
+COPY Cargo.toml .
+COPY src ./src
 RUN cargo install --path .
 
 FROM debian:bookworm

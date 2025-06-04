@@ -2,7 +2,7 @@
 Cargo.lock
 
 # Program output
-*.admin
+Settings.toml
 
 # Docker data
 /psql
