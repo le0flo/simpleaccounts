@@ -28,6 +28,10 @@ services:
 
     volumes:
       - ./psql:/var/lib/postgresql/data
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/1.sql
+
+    ports:
+      - 5432:5432
 
     networks:
       - simple-accounts-net
