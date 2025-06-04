@@ -1,16 +1,17 @@
-use crate::database::postgresql::Repository;
+use crate::database::PgRepository;
 use super::DEFAULT_BALANCE;
+
 use rand::{distr::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
-use sqlx::{Error, PgPool, Row};
+use sqlx::Row;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct User {
     pub identifier: String,
     pub balance: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub enum BalanceOperation {
     INCREMENT,
     DECREMENT,
@@ -47,8 +48,8 @@ impl User {
     }
 }
 
-impl Repository<User> for User {
-    async fn select(db: &PgPool, id: &String) -> Result<User, Error> {
+impl PgRepository<User> for User {
+    async fn select(db: &sqlx::PgPool, id: &String) -> Result<User, sqlx::Error> {
         let query = sqlx::query("select balance from users where identifier = $1");
 
         let row = query.bind(id).fetch_one(db).await?;
@@ -61,7 +62,7 @@ impl Repository<User> for User {
         return Ok(user);
     }
 
-    async fn insert(&self, db: &PgPool) -> Result<(), Error> {
+    async fn insert(&self, db: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         let mut transaction = db.begin().await?;
 
         let query = sqlx::query("insert into users (identifier, balance) values ($1, $2)");
@@ -77,7 +78,7 @@ impl Repository<User> for User {
         return Ok(());
     }
 
-    async fn update(&self, db: &PgPool) -> Result<(), Error> {
+    async fn update(&self, db: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         let mut transaction = db.begin().await?;
 
         let query = sqlx::query("update users set balance = $2 where identifier = $1");
@@ -93,7 +94,7 @@ impl Repository<User> for User {
         return Ok(());
     }
 
-    async fn delete(&self, db: &PgPool) -> Result<(), Error> {
+    async fn delete(&self, db: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         let mut transaction = db.begin().await?;
 
         let query = sqlx::query("delete from users where identifier = $1");

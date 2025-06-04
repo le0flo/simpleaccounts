@@ -1,10 +1,12 @@
-use crate::database::postgresql::Repository;
+use crate::database::{PgRepository, RedisRepository};
 use super::DEFAULT_BITS;
+
 use rand::{distr::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use redis::Commands;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Token {
     pub seed: String,
     pub bits: i32,
@@ -45,7 +47,7 @@ impl Token {
     }
 }
 
-impl Repository<Token> for Token {
+impl PgRepository<Token> for Token {
     async fn select(db: &sqlx::PgPool, id: &String) -> Result<Token, sqlx::Error> {
         let query = sqlx::query("select bits, stamp from tokens where seed = $1");
 
@@ -104,5 +106,43 @@ impl Repository<Token> for Token {
         transaction.commit().await?;
 
         return Ok(());
+    }
+}
+
+impl RedisRepository<i32> for Token {
+    fn get(db: &r2d2::Pool<redis::Client>, key: &String) -> Result<i32, ()> {
+        let mut conn = match db.get() {
+            Ok(value) => value,
+            Err(_) => return Err(()),
+        };
+
+        return match conn.get::<&str, i32>(key.as_str()) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(()),
+        };
+    }
+
+    fn del(db: &r2d2::Pool<redis::Client>, key: &String) -> Result<(), ()> {
+        let mut conn = match db.get() {
+            Ok(value) => value,
+            Err(_) => return Err(()),
+        };
+
+        return match conn.del::<&str, ()>(key.as_str()) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        };
+    }
+
+    fn put(db: &r2d2::Pool<redis::Client>, key: &String, value: i32) -> Result<(), ()> {
+        let mut conn = match db.get() {
+            Ok(value) => value,
+            Err(_) => return Err(()),
+        };
+
+        return match conn.set::<&str, i32, ()>(key.as_str(), value) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        };
     }
 }

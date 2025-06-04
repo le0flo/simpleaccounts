@@ -4,13 +4,16 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-serde = { version = "*" }
-serde_json = { version = "*" }
-actix-web = { version = "4.9" }
-
+log = { version = "*", features = ["std"]}
 rand = { version = "*" }
 uuid = { version = "*", features = ["v4"] }
-hashcash = { version = "*" }
+
+serde = { version = "*" }
+serde_json = { version = "*" }
+toml = { version = "*" }
+
+actix-web = { version = "4.9" }
+hashcash = { version = "0.1.1" }
 
 sqlx = { version = "*", features = ["postgres", "runtime-tokio"] }
 r2d2 = { version = "*" }

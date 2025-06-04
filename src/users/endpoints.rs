@@ -1,16 +1,16 @@
-use crate::database::postgresql::Repository;
-use super::models::{User, BalanceOperation};
-use serde::{Deserialize, Serialize};
-use actix_web::{http::{header::HeaderName, StatusCode}, web, HttpRequest, HttpResponse, Responder, Scope};
-use redis::Commands;
+use crate::{configuration::Configuration, database::{PgRepository, RedisRepository}, http, tokens::models::Token};
+use super::models::{BalanceOperation, User};
 
-#[derive(Serialize, Deserialize)]
+use serde::{Deserialize, Serialize};
+use actix_web::{http::StatusCode, web, HttpRequest, HttpResponse, Responder, Scope};
+
+#[derive(Deserialize, Serialize)]
 pub struct BalanceChangeRequest {
     pub amount: u32,
     pub operation: BalanceOperation,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct UserDeletionRequest {
     pub identifier: String,
 }
@@ -23,24 +23,19 @@ pub fn services() -> Scope {
 }
 
 #[actix_web::get("/new")]
-pub async fn new_user(psql_pool: web::Data<sqlx::PgPool>, redis_pool: web::Data<r2d2::Pool<redis::Client>>, request: HttpRequest) -> impl Responder { 
-    let mut redis = match redis_pool.get() {
-        Ok(value) => value,
-        Err(_) => return HttpResponse::new(StatusCode::SERVICE_UNAVAILABLE),
-    };
-    
-    let seed = match request.headers().get(HeaderName::from_static("SA-Token")) {
-        Some(value) => value.to_str().unwrap(),
-        None => return HttpResponse::new(StatusCode::BAD_REQUEST),
+pub async fn new_user(psql_pool: web::Data<sqlx::Pool<sqlx::Postgres>>, redis_pool: web::Data<r2d2::Pool<redis::Client>>, request: HttpRequest) -> impl Responder {
+    let seed = match http::get_header_value(&request, "sa-token") {
+      Ok(value) => value,
+      Err(_) => return HttpResponse::new(StatusCode::BAD_REQUEST),
     };
 
-    let is_solved = match redis.get::<&str, i32>(seed) {
+    let is_solved = match Token::get(&redis_pool, &seed) {
         Ok(value) => value,
         Err(_) => return HttpResponse::new(StatusCode::BAD_REQUEST),
     };
 
     if is_solved == 1 {
-        if redis.del::<&str, ()>(seed).is_err() {
+        if Token::del(&redis_pool, &seed).is_err() {
             return HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR);
         }
 
@@ -51,21 +46,22 @@ pub async fn new_user(psql_pool: web::Data<sqlx::PgPool>, redis_pool: web::Data<
             Err(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
-    
+
     return HttpResponse::new(StatusCode::BAD_REQUEST);
 }
 
 #[actix_web::delete("/delete")]
-pub async fn delete_user(admin_key: web::Data<uuid::Uuid>, psql_pool: web::Data<sqlx::PgPool>, request: HttpRequest, body: web::Json<UserDeletionRequest>) -> impl Responder { 
-    let request_key = match request.headers().get(HeaderName::from_static("SA-AdminKey")) {
-        Some(value) => value.to_str().unwrap(),
-        None => return HttpResponse::new(StatusCode::BAD_REQUEST),
+pub async fn delete_user(config: web::Data<Configuration>, psql_pool: web::Data<sqlx::PgPool>, request: HttpRequest, body: web::Json<UserDeletionRequest>) -> impl Responder {
+    let admin_key = match http::get_header_value(&request, "sa-adminkey") {
+      Ok(value) => value,
+      Err(_) => return HttpResponse::new(StatusCode::BAD_REQUEST),
     };
 
-    if !admin_key.to_string().eq(request_key) {
-        return HttpResponse::new(StatusCode::UNAUTHORIZED);
-    }
-    
+    match config.admin.check(&admin_key) {
+        Ok(_) => (),
+        Err(_) => return HttpResponse::new(StatusCode::UNAUTHORIZED),
+    };
+
     let user = match User::select(&psql_pool, &body.identifier).await {
         Ok(value) => value,
         Err(_) => return HttpResponse::new(StatusCode::BAD_REQUEST),
@@ -78,22 +74,22 @@ pub async fn delete_user(admin_key: web::Data<uuid::Uuid>, psql_pool: web::Data<
 }
 
 #[actix_web::put("/balance/change")]
-pub async fn balance_change(admin_key: web::Data<uuid::Uuid>, psql_pool: web::Data<sqlx::PgPool>, request: HttpRequest, body: web::Json<BalanceChangeRequest>) -> impl Responder {
-    let request_key = match request.headers().get(HeaderName::from_static("SA-AdminKey")) {
-        Some(value) => value.to_str().unwrap(),
-        None => return HttpResponse::new(StatusCode::BAD_REQUEST),
+pub async fn balance_change(config: web::Data<Configuration>, psql_pool: web::Data<sqlx::PgPool>, request: HttpRequest, body: web::Json<BalanceChangeRequest>) -> impl Responder {
+    let admin_key = match http::get_header_value(&request, "sa-adminkey") {
+      Ok(value) => value,
+      Err(_) => return HttpResponse::new(StatusCode::BAD_REQUEST),
     };
 
-    let identifier = match request.headers().get(HeaderName::from_static("SA-User")) {
-        Some(value) => String::from(value.to_str().unwrap()),
-        None => return HttpResponse::new(StatusCode::BAD_REQUEST),
+    let user_id = match http::get_header_value(&request, "sa-userid") {
+      Ok(value) => value,
+      Err(_) => return HttpResponse::new(StatusCode::BAD_REQUEST),
     };
 
-    if !admin_key.to_string().eq(request_key) {
+    if config.admin.key.eq(&admin_key) {
         return HttpResponse::new(StatusCode::UNAUTHORIZED);
     }
 
-    let mut user = match User::select(&psql_pool, &identifier).await {
+    let mut user = match User::select(&psql_pool, &user_id).await {
         Ok(value) => value,
         Err(_) => return HttpResponse::new(StatusCode::BAD_REQUEST),
     };
