@@ -8,8 +8,8 @@ services:
       - redis
 
     environment:
-      PSQL_URI: postgres://${PSQL_USER}:${PSQL_PASSWORD}@psql/simpleaccounts
-      REDIS_URI: redis://redis/
+      SIMPLEACCOUNTS_PSQL_URI: postgres://${SIMPLEACCOUNTS_PSQL_USER}:${SIMPLEACCOUNTS_PSQL_PASSWORD}@psql/simpleaccounts
+      SIMPLEACCOUNTS_REDIS_URI: redis://redis/
 
     ports:
       - 8080:8080
@@ -22,8 +22,8 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_USER: ${PSQL_USER}
-      POSTGRES_PASSWORD: ${PSQL_PASSWORD}
+      POSTGRES_USER: ${SIMPLEACCOUNTS_PSQL_USER}
+      POSTGRES_PASSWORD: ${SIMPLEACCOUNTS_PSQL_PASSWORD}
       POSTGRES_DB: simpleaccounts
 
     volumes:

@@ -1,14 +1,13 @@
-use std::{fs, path::Path, process::exit};
-use serde::{Deserialize, Serialize};
+use std::{process, fs, path::Path};
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct Configuration {
     pub ip: String,
     pub port: u16,
     pub admin: AdminConfiguration,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct AdminConfiguration {
     pub key: String,
 }
@@ -28,27 +27,33 @@ impl Configuration {
         if file.is_file() {
             let dumped = match fs::read_to_string(file) {
                 Ok(value) => value,
-                Err(_) => exit(-1),
+                Err(_) => process::exit(0x01),
             };
 
             return match toml::from_str(dumped.as_str()) {
                 Ok(value) => value,
-                Err(_) => exit(-2),
+                Err(_) => process::exit(0x02),
             };
         } else {
             let config = Configuration::new();
             let config_string = match toml::to_string(&config) {
                 Ok(value) => value,
-                Err(_) => exit(-3),
+                Err(_) => process::exit(0x11),
             };
 
             match fs::write(file, config_string) {
                 Ok(_) => (),
-                Err(_) => exit(-4),
+                Err(_) => process::exit(0x12),
             };
 
             return config;
         }
+    }
+}
+
+impl std::fmt::Display for Configuration {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(formatter, "\n- ip: {}\n- port: {}\n- admin: {}\n", self.ip, self.port, self.admin);
     }
 }
 
@@ -67,5 +72,11 @@ impl AdminConfiguration {
         }
 
         return Err(());
+    }
+}
+
+impl std::fmt::Display for AdminConfiguration {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(formatter, "\n\t- key: {}\n", self.key);
     }
 }

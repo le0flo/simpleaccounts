@@ -2,19 +2,12 @@ use crate::database::PgRepository;
 use super::DEFAULT_BALANCE;
 
 use rand::{distr::Alphanumeric, Rng};
-use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
-#[derive(Deserialize, Serialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct User {
     pub identifier: String,
     pub balance: i32,
-}
-
-#[derive(Clone, Copy, Deserialize, Serialize)]
-pub enum BalanceOperation {
-    INCREMENT,
-    DECREMENT,
 }
 
 impl User {
@@ -33,12 +26,7 @@ impl User {
         return user;
     }
 
-    pub fn change_balance(&mut self, amount: u32, operation: BalanceOperation) -> Result<(), ()> {
-        let multiplier = match operation {
-            BalanceOperation::INCREMENT => 1,
-            BalanceOperation::DECREMENT => -1,
-        };
-
+    pub fn change_balance(&mut self, amount: u32, multiplier: i32) -> Result<(), ()> {
         if amount > 0 && self.balance >= (amount as i32) {
             self.balance += (amount as i32) * multiplier;
             return Ok(());

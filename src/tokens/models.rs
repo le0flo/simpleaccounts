@@ -2,11 +2,10 @@ use crate::database::{PgRepository, RedisRepository};
 use super::DEFAULT_BITS;
 
 use rand::{distr::Alphanumeric, Rng};
-use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use redis::Commands;
 
-#[derive(Deserialize, Serialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct Token {
     pub seed: String,
     pub bits: i32,
