@@ -29,6 +29,14 @@ impl Token {
         return token;
     }
 
+    pub fn from(seed: &String, stamp: &String) -> Self {
+        return Token {
+            seed: seed.clone(),
+            bits: DEFAULT_BITS,
+            stamp: stamp.clone(),
+        };
+    }
+
     pub fn validate(&self) -> Result<(), ()> {
         let temp = match hashcash::Token::from_str(&self.stamp) {
             Ok(value) => value,

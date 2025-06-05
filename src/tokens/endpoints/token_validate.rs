@@ -1,9 +1,17 @@
-use crate::{database::PgRepository, database::RedisRepository, tokens::models::Token};
+use crate::{database::{PgRepository, RedisRepository}, tokens::models::Token};
 use actix_web::{web, http};
 
+#[derive(serde::Deserialize)]
+struct RequestBody {
+    seed: String,
+    stamp: String,
+}
+
 #[actix_web::post("/validate")]
-pub async fn endpoint(psql_pool: web::Data<sqlx::PgPool>, redis_pool: web::Data<r2d2::Pool<redis::Client>>, body: web::Json<Token>) -> impl actix_web::Responder {
-    if body.validate().is_err() {
+pub async fn endpoint(psql_pool: web::Data<sqlx::PgPool>, redis_pool: web::Data<r2d2::Pool<redis::Client>>, body: web::Json<RequestBody>) -> impl actix_web::Responder {
+    let token = Token::from(&body.seed, &body.stamp);
+
+    if token.validate().is_err() {
         return actix_web::HttpResponse::new(http::StatusCode::NOT_ACCEPTABLE);
     }
 
@@ -15,7 +23,7 @@ pub async fn endpoint(psql_pool: web::Data<sqlx::PgPool>, redis_pool: web::Data<
         return actix_web::HttpResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    return match body.insert(&psql_pool).await {
+    return match token.insert(&psql_pool).await {
         Ok(_) => actix_web::HttpResponse::new(http::StatusCode::OK),
         Err(_) => actix_web::HttpResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR),
     };
