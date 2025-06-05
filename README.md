@@ -7,4 +7,5 @@
 
 ### Installation
 
-1. To run *Simple Accounts* in the background, use `docker compose up -d`
+1. Set the `PSQL_USER` and `PSQL_PASSWORD` environment variable.
+2. To run *Simple Accounts* in the background, use `docker compose up -d`
