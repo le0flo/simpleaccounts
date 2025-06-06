@@ -13,6 +13,8 @@ toml = { version = "*" }
 
 actix-web = { version = "4.9" }
 hashcash = { version = "0.1.1" }
+totp-rs = { version = "5.7.0" }
+pgp = { version = "0.16.0" }
 
 sqlx = { version = "*", features = ["postgres", "runtime-tokio"] }
 r2d2 = { version = "*" }
