@@ -1,11 +1,10 @@
 use crate::database::{PgRepository, RedisRepository};
-use super::DEFAULT_BITS;
 
 use rand::{distr::Alphanumeric, Rng};
 use sqlx::Row;
 use redis::Commands;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Serialize)]
 pub struct Token {
     pub seed: String,
     pub bits: i32,
@@ -22,7 +21,7 @@ impl Token {
 
         let token = Token {
             seed: _seed,
-            bits: DEFAULT_BITS,
+            bits: super::DEFAULT_BITS,
             stamp: String::from(""),
         };
 
@@ -32,7 +31,7 @@ impl Token {
     pub fn from(seed: &String, stamp: &String) -> Self {
         return Token {
             seed: seed.clone(),
-            bits: DEFAULT_BITS,
+            bits: super::DEFAULT_BITS,
             stamp: stamp.clone(),
         };
     }
@@ -43,7 +42,7 @@ impl Token {
             Err(_) => return Err(()),
         };
 
-        if temp.bits == DEFAULT_BITS as u32 && temp.resource.eq(&self.seed) {
+        if temp.bits == super::DEFAULT_BITS as u32 && temp.resource.eq(&self.seed) {
             return match temp.check() {
                 Ok(_) => Ok(()),
                 Err(_) => Err(()),

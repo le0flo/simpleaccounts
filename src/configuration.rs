@@ -10,6 +10,7 @@ pub struct Configuration {
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct AdminConfiguration {
     pub key: String,
+    pub debug: bool,
 }
 
 impl Configuration {
@@ -63,6 +64,7 @@ impl AdminConfiguration {
 
         return AdminConfiguration {
             key: _key,
+            debug: false,
         };
     }
 
@@ -77,6 +79,6 @@ impl AdminConfiguration {
 
 impl std::fmt::Display for AdminConfiguration {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(formatter, "\n\t- key: {}\n", self.key);
+        return write!(formatter, "\n\t- key: {}\n\t- debug: {}\n", self.key, self.debug);
     }
 }

@@ -1,10 +1,8 @@
-pub mod user_new;
-pub mod user_delete;
-pub mod balance_change;
+mod users_new;
+mod users_delete;
 
 pub fn services() -> actix_web::Scope {
     actix_web::web::scope("/users")
-        .service(user_new::endpoint)
-        .service(user_delete::endpoint)
-        .service(balance_change::endpoint)
+        .service(users_new::endpoint)
+        .service(users_delete::endpoint)
 }

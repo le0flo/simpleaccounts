@@ -1,50 +1,43 @@
 use crate::database::PgRepository;
-use super::DEFAULT_BALANCE;
 
 use rand::{distr::Alphanumeric, Rng};
 use sqlx::Row;
 
-#[derive(serde::Deserialize, serde::Serialize)]
 pub struct User {
     pub identifier: String,
-    pub balance: i32,
+    pub method: String,
+    pub secret: String,
 }
 
 impl User {
-    pub fn new() -> Self {
+    pub fn new(method: &String, secret: &Option<String>) -> Self {
         let _identifier = rand::rng()
             .sample_iter(Alphanumeric)
             .take(20)
             .map(char::from)
             .collect::<String>();
 
+        // TODO
         let user = User {
             identifier: _identifier,
-            balance: DEFAULT_BALANCE,
+            method: method.clone(),
+            secret: secret.clone().unwrap(),
         };
 
         return user;
-    }
-
-    pub fn change_balance(&mut self, amount: u32, multiplier: i32) -> Result<(), ()> {
-        if amount > 0 && self.balance >= (amount as i32) {
-            self.balance += (amount as i32) * multiplier;
-            return Ok(());
-        }
-
-        return Err(());
     }
 }
 
 impl PgRepository<User> for User {
     async fn select(db: &sqlx::PgPool, id: &String) -> Result<User, sqlx::Error> {
-        let query = sqlx::query("select balance from users where identifier = $1");
+        let query = sqlx::query("select method, secret from users where identifier = $1");
 
         let row = query.bind(id).fetch_one(db).await?;
 
         let user = User {
             identifier: id.clone(),
-            balance: row.try_get::<i32, &str>("balance")?,
+            method: row.try_get::<String, &str>("method")?,
+            secret: row.try_get::<String, &str>("secret")?,
         };
 
         return Ok(user);
@@ -53,11 +46,12 @@ impl PgRepository<User> for User {
     async fn insert(&self, db: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         let mut transaction = db.begin().await?;
 
-        let query = sqlx::query("insert into users (identifier, balance) values ($1, $2)");
+        let query = sqlx::query("insert into users (identifier, method, secret) values ($1, $2, $3)");
 
         query
             .bind(&self.identifier)
-            .bind(&self.balance)
+            .bind(&self.method)
+            .bind(&self.secret)
             .execute(&mut *transaction)
             .await?;
 
@@ -69,11 +63,12 @@ impl PgRepository<User> for User {
     async fn update(&self, db: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         let mut transaction = db.begin().await?;
 
-        let query = sqlx::query("update users set balance = $2 where identifier = $1");
+        let query = sqlx::query("update users set method = $2 and secret = $3 where identifier = $1");
 
         query
             .bind(&self.identifier)
-            .bind(&self.balance)
+            .bind(&self.method)
+            .bind(&self.secret)
             .execute(&mut *transaction)
             .await?;
 

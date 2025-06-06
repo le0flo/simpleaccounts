@@ -1,8 +1,8 @@
-pub mod token_new;
-pub mod token_validate;
+mod tokens_new;
+mod tokens_validate;
 
 pub fn services() -> actix_web::Scope {
     actix_web::web::scope("/tokens")
-        .service(token_new::endpoint)
-        .service(token_validate::endpoint)
+        .service(tokens_new::endpoint)
+        .service(tokens_validate::endpoint)
 }
