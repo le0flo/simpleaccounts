@@ -24,7 +24,7 @@ pub async fn endpoint(config: web::Data<configuration::Configuration>, psql_pool
         Err(_) => return actix_web::HttpResponse::new(http::StatusCode::BAD_REQUEST),
     };
 
-    // TODO eliminare tutte le sessioni
+    // TODO eliminare tutte le sessioni e wallet
     if user.delete(&psql_pool).await.is_err() {
         return actix_web::HttpResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR);
     }

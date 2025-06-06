@@ -35,6 +35,7 @@ pub async fn endpoint(psql_pool: web::Data<sqlx::Pool<sqlx::Postgres>>, redis_po
             return actix_web::HttpResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR);
         }
 
+        // TODO capire come strutturare la response
         let response = ResponseBody {
             session_id: session.session_id.clone(),
             identifier: user.identifier.clone(),

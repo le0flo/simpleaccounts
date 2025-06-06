@@ -17,7 +17,7 @@ impl User {
             .map(char::from)
             .collect::<String>();
 
-        // TODO
+        // TODO creare i segreti d'autenticazione e verificarli
         let user = User {
             identifier: _identifier,
             method: method.clone(),
