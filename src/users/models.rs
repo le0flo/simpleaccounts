@@ -63,7 +63,7 @@ impl PgRepository<User> for User {
     async fn update(&self, db: &sqlx::PgPool) -> Result<(), sqlx::Error> {
         let mut transaction = db.begin().await?;
 
-        let query = sqlx::query("update users set method = $2 and secret = $3 where identifier = $1");
+        let query = sqlx::query("update users set method = $2, secret = $3 where identifier = $1");
 
         query
             .bind(&self.identifier)

@@ -23,3 +23,6 @@ CREATE TABLE IF NOT EXISTS public.wallets (
 	balance int4 DEFAULT 0 NOT NULL,
 	CONSTRAINT wallets_pk PRIMARY KEY (identifier)
 );
+
+-- public.wallets foreign keys
+ALTER TABLE public.wallets ADD CONSTRAINT wallets_users_fk FOREIGN KEY (identifier) REFERENCES public.users(identifier);
