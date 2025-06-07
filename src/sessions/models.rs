@@ -3,21 +3,21 @@ use crate::{database::RedisRepository, users::models::User};
 use redis::Commands;
 
 #[derive(serde::Deserialize, serde::Serialize)]
-pub struct UserSession {
+pub struct Session {
     pub session_id: String,
     pub user_id: String,
 }
 
-impl UserSession {
+impl Session {
     pub fn new(user: &User) -> Self {
-        return UserSession {
+        return Session {
             session_id: uuid::Uuid::new_v4().to_string(),
             user_id: user.identifier.clone(),
         };
     }
 }
 
-impl RedisRepository<String> for UserSession {
+impl RedisRepository<String> for Session {
     fn get(db: &r2d2::Pool<redis::Client>, key: &String) -> Result<String, ()> {
         let mut conn = match db.get() {
             Ok(value) => value,

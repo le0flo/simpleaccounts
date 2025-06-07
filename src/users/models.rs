@@ -1,6 +1,7 @@
 use crate::database::PgRepository;
 
 use rand::{distr::Alphanumeric, Rng};
+use pgp::composed::Deserializable;
 use sqlx::Row;
 
 pub struct User {
@@ -10,21 +11,70 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(method: &String, secret: &Option<String>) -> Self {
-        let _identifier = rand::rng()
+    pub fn new(method: &String, pubkey: &Option<String>) -> Result<Self, ()> {
+        let identifier = rand::rng()
             .sample_iter(Alphanumeric)
             .take(20)
             .map(char::from)
             .collect::<String>();
 
-        // TODO creare i segreti d'autenticazione e verificarli
-        let user = User {
-            identifier: _identifier,
-            method: method.clone(),
-            secret: secret.clone().unwrap(),
+        let _secret = match method.as_str() {
+            "totp" => match Self::generate_totp_secret(&identifier) {
+                Ok(value) => value,
+                Err(_) => return Err(()),
+            },
+
+            "pgp" => match Self::validate_pgp_pubkey(pubkey) {
+                Ok(value) => value,
+                Err(_) => return Err(()),
+            },
+
+            _ => return Err(()),
         };
 
-        return user;
+        let user = User {
+            identifier: identifier.clone(),
+            method: method.clone(),
+            secret: _secret,
+        };
+
+        return Ok(user);
+    }
+
+    fn generate_totp_secret(issuer: &String) -> Result<String, ()> {
+        let _secret = rand::rng()
+            .sample_iter(Alphanumeric)
+            .take(30)
+            .map(char::from)
+            .collect::<String>();
+
+        let totp = match totp_rs::TOTP::new(
+            totp_rs::Algorithm::SHA1,
+            6,
+            1,
+            30,
+            _secret.into_bytes(),
+            Some("Simple Accounts".to_string()),
+            issuer.clone()
+        ) {
+            Ok(value) => value,
+            Err(_) => return Err(()),
+        };
+
+        return Ok(totp.get_url());
+    }
+
+    fn validate_pgp_pubkey(pubkey: &Option<String>) -> Result<String, ()> {
+        if pubkey.is_some() {
+            let _pubkey_string = pubkey.as_ref().unwrap().as_str();
+
+            return match pgp::composed::SignedPublicKey::from_string(_pubkey_string) {
+                Ok(_) => Ok(pubkey.as_ref().unwrap().clone()),
+                Err(_) => Err(()),
+            };
+        }
+
+        return Err(());
     }
 }
 
