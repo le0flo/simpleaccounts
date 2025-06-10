@@ -1,6 +1,5 @@
-use crate::database::{PgRepository, RedisRepository};
+use crate::{database::{PgRepository, RedisRepository}, randoms};
 
-use rand::{distr::Alphanumeric, Rng};
 use sqlx::Row;
 use redis::Commands;
 
@@ -13,19 +12,11 @@ pub struct Token {
 
 impl Token {
     pub fn new() -> Self {
-        let _seed = rand::rng()
-            .sample_iter(Alphanumeric)
-            .take(16)
-            .map(char::from)
-            .collect::<String>();
-
-        let token = Token {
-            seed: _seed,
+        return Token {
+            seed: randoms::alphanumeric_string(16),
             bits: super::DEFAULT_BITS,
             stamp: String::from(""),
         };
-
-        return token;
     }
 
     pub fn from(seed: &String, stamp: &String) -> Self {

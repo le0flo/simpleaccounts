@@ -1,7 +1,6 @@
-use crate::database::PgRepository;
+use crate::{database::PgRepository, randoms};
 
-use rand::{distr::Alphanumeric, Rng};
-use pgp::composed::Deserializable;
+use sequoia_openpgp::parse::Parse;
 use sqlx::Row;
 
 pub struct User {
@@ -12,11 +11,7 @@ pub struct User {
 
 impl User {
     pub fn new(method: &String, pubkey: &Option<String>) -> Result<Self, ()> {
-        let identifier = rand::rng()
-            .sample_iter(Alphanumeric)
-            .take(20)
-            .map(char::from)
-            .collect::<String>();
+        let identifier = randoms::numeric_string(20);
 
         let _secret = match method.as_str() {
             "totp" => match Self::generate_totp_secret(&identifier) {
@@ -32,23 +27,17 @@ impl User {
             _ => return Err(()),
         };
 
-        let user = User {
-            identifier: identifier.clone(),
-            method: method.clone(),
+        return Ok(User {
+            identifier: identifier.to_owned(),
+            method: method.to_owned(),
             secret: _secret,
-        };
-
-        return Ok(user);
+        });
     }
 
     fn generate_totp_secret(issuer: &String) -> Result<String, ()> {
-        let _secret = rand::rng()
-            .sample_iter(Alphanumeric)
-            .take(30)
-            .map(char::from)
-            .collect::<String>();
+        let _secret = randoms::alphanumeric_string(64);
 
-        let totp = match totp_rs::TOTP::new(
+        return match totp_rs::TOTP::new(
             totp_rs::Algorithm::SHA1,
             6,
             1,
@@ -57,24 +46,50 @@ impl User {
             Some("Simple Accounts".to_string()),
             issuer.clone()
         ) {
+            Ok(value) => Ok(value.get_url()),
+            Err(_) => Err(()),
+        };
+    }
+
+    fn validate_pgp_pubkey(pubkey: &Option<String>) -> Result<String, ()> {
+        if pubkey.is_none() {
+            return Err(());
+        }
+
+        let _pubkey_bytes = pubkey.as_ref().unwrap().as_bytes();
+
+        // TODO
+
+        Err(())
+    }
+
+    pub fn generate_pgp_challenge(&self) -> Result<Option<String>, ()> {
+        if self.method.as_str() == "totp" {
+            return Ok(None);
+        }
+
+        // TODO + vedere anyhow
+
+        let policy = StandardPolicy::new();
+        let pubkey = match sequoia_openpgp::Cert::from_bytes(self.secret.as_bytes()) {
             Ok(value) => value,
             Err(_) => return Err(()),
         };
 
-        return Ok(totp.get_url());
-    }
+        let mut sink = Vec::new();
+        let message = Message::new(&mut sink);
 
-    fn validate_pgp_pubkey(pubkey: &Option<String>) -> Result<String, ()> {
-        if pubkey.is_some() {
-            let _pubkey_string = pubkey.as_ref().unwrap().as_str();
+        let message = match Encryptor::for_recipients(message, vec![pubkey]).build() {
+            Ok(value) => value,
+            Err(_) => return Err(()),
+        };
 
-            return match pgp::composed::SignedPublicKey::from_string(_pubkey_string) {
-                Ok(_) => Ok(pubkey.as_ref().unwrap().clone()),
-                Err(_) => Err(()),
-            };
-        }
+        let mut message = LiteralWriter::new(message).build()?;
 
-        return Err(());
+        message.write_all(_secret.as_bytes())?;
+        message.finalize()?;
+
+        return Ok(Some(String::from_utf8(sink)));
     }
 }
 

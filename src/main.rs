@@ -2,6 +2,7 @@ use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 
 mod configuration;
 mod database;
+mod randoms;
 
 mod sessions;
 mod tokens;
